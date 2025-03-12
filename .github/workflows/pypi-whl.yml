@@ -1,11 +1,16 @@
-name: PyPI Whl Publish
+name: Publish to PyPI
 
 on:
   push:
-    branches:
-      - main
-      - deno-binary
+    branches: [main, dev, deno-binary]
+    tags: ['*']
+  pull_request:
+    brainches: [main, dev]
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 defaults:
   run:
