@@ -33,8 +33,7 @@ classifiers = [
 dependencies = []
 
 [project.urls]
-# todo: to be updated once copied to the destination repo
-Documentation = "https://github.com/candleindark/bids-validator-deno#readme"
-Issues = "https://github.com/candleindark/bids-validator-deno/issues"
-Source = "https://github.com/candleindark/bids-validator-deno"
+Documentation = "https://github.com/bids-standard/bids-validator/tree/main/tools/pypi-whl"
+Issues = "https://github.com/bids-standard/bids-validator/issues"
+Source = "https://github.com/bids-standard/bids-validator/tree/main/tools/pypi-whl"
 
