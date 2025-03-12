@@ -57,6 +57,8 @@ jobs:
         working-directory: tools/pypi-whl
       - name: Print out the content of the dist folder after building the wheel
         run: ls -l tools/pypi-whl/dist/
+      - name: Check if distribution's description will render correctly on PyPI
+        run: twine check tools/pypi-whl/dist/*.whl
       - uses: actions/upload-artifact@v4
         with:
           name: wheel-${{ matrix.os }}
