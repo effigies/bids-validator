@@ -4,7 +4,6 @@ build-backend = "pdm.backend"
 
 [tool.pdm.build]
 is-purelib = false
-# includes = ["src"]
 excludes = ["dist/*", "lib/*", ".gitignore"]
 
 [tool.pdm.build.wheel-data]
