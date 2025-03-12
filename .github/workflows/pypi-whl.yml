@@ -43,7 +43,7 @@ jobs:
       - name: Compile deno binaries
         run: |
           cd tools/pypi-whl
-          deno compile -ERNW -o dist/bids-validator jsr:@bids/validator
+          deno compile -ERNW --allow-run -o dist/bids-validator ../../src/bids-validator.ts
       - name: Print out the content of the dist folder after building validator binary
         run: ls -l tools/pypi-whl/dist/
       - uses: actions/upload-artifact@v4
