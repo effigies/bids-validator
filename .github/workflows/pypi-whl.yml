@@ -20,6 +20,9 @@ jobs:
   build_wheels:
     name: Build whl on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    env:
+      # Changing this requires changing pyproject.toml
+      EXECUTABLE: bids-validator
     strategy:
       matrix:
         # windows-latest is an Intel runner
@@ -32,6 +35,8 @@ jobs:
           - ubuntu-latest
           - ubuntu-24.04-arm
       fail-fast: false
+    permissions:
+      attestations: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -39,63 +44,40 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: 3.9
-      - name: Install build and twine
-        run: python -m pip install build twine
       - name: Compile deno binaries
         run: |
-          cd tools/pypi-whl
-          deno compile -ERNW --allow-run -o dist/bids-validator ../../src/bids-validator.ts
+          deno compile -ERNW --allow-run -o dist/${EXECUTABLE} ../../src/bids-validator.ts
+        working-directory: tools/pypi-whl
       - name: Print out the content of the dist folder after building validator binary
         run: ls -l tools/pypi-whl/dist/
-      - uses: actions/upload-artifact@v4
+      - uses: hynek/build-and-inspect-python-package@v2
         with:
-          name: bids-validator-${{ matrix.os }}
-          path: |
-            tools/pypi-whl/dist/bids-validator
-            tools/pypi-whl/dist/bids-validator.*
-      - name: Build wheel
-        run: python -m build --wheel
-        working-directory: tools/pypi-whl
-      - name: Print out the content of the dist folder after building the wheel
-        run: ls -l tools/pypi-whl/dist/
-      - name: Validate the wheel installs the BIDS validator correctly
-        run: |
-          python -m venv .venv
-          if [[ "$RUNNER_OS" == "Windows" ]]; then
-            ACTIVATE_PATH=.venv/Scripts/activate
-            BIDS_VALIDATOR_BINARY_NAME=bids-validator.exe
-            VENV_BIN_DIR=.venv/Scripts
-          else
-            ACTIVATE_PATH=.venv/bin/activate
-            BIDS_VALIDATOR_BINARY_NAME=bids-validator
-            VENV_BIN_DIR=.venv/bin
-          fi
-          source "$ACTIVATE_PATH"
+          # Use attestation only if the action is triggered inside the repo
+          attest-build-provenance-github: ${{ github.event_name == 'push' }}
+          path: tools/pypi-whl
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3
+      - name: Check wheel
+        run:
           pip install tools/pypi-whl/dist/*.whl
-          bids-validator --version
-          ls -lh "$VENV_BIN_DIR"
-          diff "$VENV_BIN_DIR"/"$BIDS_VALIDATOR_BINARY_NAME" tools/pypi-whl/dist/"$BIDS_VALIDATOR_BINARY_NAME"
-          deactivate
-      - name: Check if distribution's description will render correctly on PyPI
-        run: twine check tools/pypi-whl/dist/*.whl
-      - uses: actions/upload-artifact@v4
+          ${EXECUTABLE} --version
+
+  upload_wheels:
+    name: Publish wheels to PyPI
+    needs: [build_wheels]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download packages built by build-and-inspect-python-package
+        uses: actions/download-artifact@v4
         with:
-          name: wheel-${{ matrix.os }}
-          path: tools/pypi-whl/dist/*.whl
-      - name: Publish wheels if corresponds to a tag
-        # TODO: might be suboptimal since we might skip a tag if not the latest commit
-        run: |
-            cd tools/pypi-whl
-            # if a clean tag, no - in it
-            if git describe | grep -e -; then 
-                echo not releasing; 
-            else
-                twine upload --verbose --repository testpypi dist/*.whl
-            fi
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+          name: Packages
+          path: dist
+      - name: Inspect artifacts
+        run: ls -lR
+      - name: Upload package to PyPI
+        if: github.ref_type == 'tag'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          skip-existing: true
