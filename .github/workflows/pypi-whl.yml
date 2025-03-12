@@ -75,7 +75,6 @@ jobs:
           ls -lh "$VENV_BIN_DIR"
           diff "$VENV_BIN_DIR"/"$BIDS_VALIDATOR_BINARY_NAME" tools/pypi-whl/dist/"$BIDS_VALIDATOR_BINARY_NAME"
           deactivate
-        shell: bash
       - name: Check if distribution's description will render correctly on PyPI
         run: twine check tools/pypi-whl/dist/*.whl
       - uses: actions/upload-artifact@v4
@@ -92,7 +91,6 @@ jobs:
             else
                 twine upload --verbose --repository testpypi dist/*.whl
             fi
-        shell: bash
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
