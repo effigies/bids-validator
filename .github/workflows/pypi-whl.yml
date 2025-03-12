@@ -57,6 +57,25 @@ jobs:
         working-directory: tools/pypi-whl
       - name: Print out the content of the dist folder after building the wheel
         run: ls -l tools/pypi-whl/dist/
+      - name: Validate the wheel installs the BIDS validator correctly
+        run: |
+          python -m venv .venv
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            ACTIVATE_PATH=.venv/Scripts/activate
+            BIDS_VALIDATOR_BINARY_NAME=bids-validator.exe
+            VENV_BIN_DIR=.venv/Scripts
+          else
+            ACTIVATE_PATH=.venv/bin/activate
+            BIDS_VALIDATOR_BINARY_NAME=bids-validator
+            VENV_BIN_DIR=.venv/bin
+          fi
+          source "$ACTIVATE_PATH"
+          pip install tools/pypi-whl/dist/*.whl
+          bids-validator --version
+          ls -lh "$VENV_BIN_DIR"
+          diff "$VENV_BIN_DIR"/"$BIDS_VALIDATOR_BINARY_NAME" tools/pypi-whl/dist/"$BIDS_VALIDATOR_BINARY_NAME"
+          deactivate
+        shell: bash
       - name: Check if distribution's description will render correctly on PyPI
         run: twine check tools/pypi-whl/dist/*.whl
       - uses: actions/upload-artifact@v4
