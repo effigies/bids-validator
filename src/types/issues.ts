@@ -14,8 +14,8 @@ export interface Issue {
   suggestion?: string
   affects?: string[]
   rule?: string
-  line?: number
-  character?: number
+  line?: number | string
+  character?: number | string
 }
 
 /**
