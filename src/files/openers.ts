@@ -3,6 +3,7 @@
  *
  * These classes implement stream, text and random bytes access to BIDS resources.
  */
+import { retry } from '@std/async'
 import { join } from '@std/path'
 import { type FileOpener } from '../types/filetree.ts'
 import { createUTF8Stream } from './streams.ts'
@@ -97,6 +98,15 @@ export class BrowserFileOpener implements FileOpener {
   }
 }
 
+class HttpError extends Error {
+  status: number
+
+  constructor(status: number, message: string) {
+    super(`HTTP Error ${status}: ${message}`)
+    this.status = status
+  }
+}
+
 export class HTTPOpener implements FileOpener {
   url: string
   size: number
@@ -107,12 +117,22 @@ export class HTTPOpener implements FileOpener {
   }
 
   async _fetch(headers = {}): Promise<Response> {
-    return fetch(this.url, { headers }).then((response) => {
+    const result = await retry(async () => {
+      const response = await fetch(this.url, { headers, signal: AbortSignal.timeout(5000) })
       if (!response.ok || !response.body) {
-        throw new Error(`Failed to fetch ${this.url}: ${response.status} ${response.statusText}`)
+        throw new HttpError(response.status, response.statusText)
       }
       return response
+    }, {
+      isRetriable: (error) => {
+        return (
+          error instanceof TypeError ||
+          error instanceof HttpError && (error.status == 429 || error.status >= 500) ||
+          error instanceof DOMException && error.name === 'TimeoutError'
+        )
+      },
     })
+    return result
   }
 
   async stream(): Promise<ReadableStream<Uint8Array<ArrayBuffer>>> {
