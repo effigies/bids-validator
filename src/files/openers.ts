@@ -7,6 +7,7 @@ import { retry } from '@std/async'
 import { join } from '@std/path'
 import { type FileOpener } from '../types/filetree.ts'
 import { createUTF8Stream } from './streams.ts'
+import { logger } from '../utils/logger.ts'
 
 export class FsFileOpener implements FileOpener {
   path: string
@@ -120,11 +121,14 @@ export class HTTPOpener implements FileOpener {
     const result = await retry(async () => {
       const response = await fetch(this.url, { headers, signal: AbortSignal.timeout(5000) })
       if (!response.ok || !response.body) {
+        logger.error(`Failed to fetch ${this.url}: ${response.status} ${response.statusText}`)
         throw new HttpError(response.status, response.statusText)
       }
+      logger.info(`Retrieved ${this.url}: ${response.status} ${response.statusText}`)
       return response
     }, {
       isRetriable: (error) => {
+        logger.error(`Error during fetch retry check for ${this.url}: ${error}`)
         return (
           error instanceof TypeError ||
           error instanceof HttpError && (error.status == 429 || error.status >= 500) ||
