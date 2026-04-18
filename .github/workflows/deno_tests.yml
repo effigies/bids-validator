@@ -153,8 +153,8 @@ jobs:
           path: main
       - name: Commit to new branch
         run: |
-          mv main/main.js main/bids-validator.js .
-          git add main.js bids-validator.js
+          mv main/*.js .
+          git add *.js
           git commit -m "BLD: $VERSION [skip ci]" || true
         env:
           VERSION: ${{ needs.build.describe.version }}
