@@ -47,6 +47,7 @@ const result = await esbuild.build({
   format: 'esm',
   entryPoints: [MAIN_ENTRY, CLI_ENTRY],
   bundle: true,
+  splitting: true,
   outdir: path.join('dist', 'validator'),
   minify: flags.minify,
   target: ['chrome109', 'firefox109', 'safari16'],

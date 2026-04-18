@@ -14,7 +14,7 @@ function workaroundAssetImportMetaUrlPluginBug() {
   return {
     name: "vite-workaround-import-glob",
     transform(src, id) {
-      if (id.includes('validator/main.js')) {
+      if (src.includes(", import.meta.url")) {
         return src.replace(", import.meta.url", "")
       } else {
         return null
